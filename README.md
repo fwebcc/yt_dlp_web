@@ -33,3 +33,6 @@ pip install -U "yt-dlp[default]" --break-system-packages
 pip install -U yt-dlp-ejs --break-system-packages
 
 conf/user.json文件夹里修改启动端口5000,默认用户名和密码，密码需要MD5加密存储
+
+./cmd 驱动程序
+测试环境debian 12
