@@ -12,7 +12,7 @@ import time
 import signal
 import sys
 import fcntl
-import atexit,requests
+import atexit
 from multiprocessing import freeze_support
 
 # --- 全局常量与配置 ---
@@ -169,34 +169,16 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user_email = request.form.get('username')
-        user_passwd = request.form.get('password')
-        if not user_email or not user_passwd:
-            return render_template('login.html', error="请填写完整信息")
-
-        api_url = "http://fweb.cc:99/getcode"
-        params = {"key": "xxxxxx", "mode": "toke", "email": user_email, "passwd": user_passwd}
-
-        try:
-            response = requests.get(api_url, params=params, timeout=8)
-            data = response.json()
-            if data.get('info') == 'y':
-                val = data.get('val', {})
-                toke_val = str(val.get('toke', ''))
-                id_val = str(val.get('ID', ''))
-
-                session['toke'] = toke_val
-                session['logged_in'] = True
-
-                resp = make_response(redirect(url_for('index')))
-                resp.set_cookie('toke', toke_val, max_age=3600)
-                resp.set_cookie('ID', id_val, max_age=3600)
-                return resp
-            else:
-                return render_template('login.html', error=("认证失败"))
-        except Exception as e:
-            return render_template('login.html', error=f"验证超时")
-
+        user_email, user_passwd = request.form.get('username'), request.form.get('password')
+        if not user_email or not user_passwd: return render_template('login.html', error="请填写完整信息")
+        user_data = FileManager.read_json('conf/user.json')
+        if user_data.get('ID') == user_email and user_data.get('toke') == user_passwd:
+            toke, uid = str(user_data.get('toke', '')), str(user_data.get('ID', ''))
+            session.update({'toke': toke, 'logged_in': True})
+            resp = make_response(redirect(url_for('index')))
+            resp.set_cookie('toke', toke, max_age=3600); resp.set_cookie('ID', uid, max_age=3600)
+            return resp
+        return render_template('login.html', error="用户名或者密码错误")
     return render_template('login.html')
 
 @app.route('/start_download', methods=['POST'])
