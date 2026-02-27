@@ -1,3 +1,34 @@
+apt install ffmpeg -y
+#apt install nodejs -y
+
+
+python3 -m pip install -U yt-dlp
+
+pip3 install flask
+pip3 install yt_dlp
+
+pip3 install flask_socketio
+
+如果使用的不是源码，直接安装下面补全js功能就可以了!
+安装浏览器插件 Get cookies.txt LOCALLY
+
+安装 Deno 运行时 (推荐)
+
+curl -fsSL https://deno.land/install.sh | sh
+
+echo 'export DENO_INSTALL="/root/.deno"' >> ~/.bashrc
+echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+验证安装：输入 deno --version，看到版本号即成功。
+
+# 升级 yt-dlp 及其默认组件
+pip install -U "yt-dlp[default]" --break-system-packages
+
+# 安装关键的挑战脚本库
+pip install -U yt-dlp-ejs --break-system-packages
+
+#打包命令
 pyinstaller -F \
 --add-data "templates:templates" \
 --add-data "static:static" \
@@ -9,7 +40,7 @@ pyinstaller -F \
 --copy-metadata python-engineio \
 downapp.py
 
-
+#pip list
 Package                   Version
 ------------------------- -----------
 altgraph                  0.17.5
