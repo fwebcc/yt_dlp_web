@@ -1,0 +1,42 @@
+    @media (max-width: 600px) {
+        .DivClass {
+            width: 100%; /* 当屏幕宽度小于等于500px时，将div宽度设为100% */
+        }
+    }
+    
+    @media (min-width: 601px) {
+        .DivClass {
+            width: 500px; /* 当屏幕宽度大于500px时，将div宽度设为60% */
+        }
+    }
+.bgdiv{ 
+    height:100%;
+    position: relative;
+    background: inherit;
+    padding:0px;
+    box-sizing:border-box;
+    z-index:1;
+}
+.bgdiv::after{
+    content: "";
+    width:100%;
+    height:100%;
+    position: absolute;
+    left:0px;
+    top:0;
+    background: inherit;
+    filter: blur(20px);
+    z-index: 2;
+
+}
+a, a:visited, a:link, a:hover{
+	color:#000; !important;text-decoration: none;
+}
+.row div {
+padding-left: 0px; // 去掉默认的左padding
+padding-right: 10px;
+}
+.hezi {
+width: 100%;
+//background-color: green;
+}

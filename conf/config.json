@@ -1,0 +1,4 @@
+{
+    "proxy_url": "socks5h://192.168.2.142:1080",
+    "proxy_enabled": true
+}

@@ -1,0 +1,21 @@
+{
+    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+    "merge_output_format": "mp4",
+    "restrictfilenames": false,
+    "no_color": true,
+    "ignoreerrors": false,
+    "retries": 5,
+    "fragment_retries": 10,
+    "socket_timeout": 10,
+    "nocheckcertificate": true,
+    "concurrent_fragment_downloads": 5,
+    "postprocessor_args": {
+        "ffmpeg": ["-c:v", "libx264", "-c:a", "aac"]
+    },
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["web", "android"],
+            "n_client_allow": ["web", "android", "mweb"]
+        }
+    }
+}
