@@ -175,7 +175,7 @@ def login():
             return render_template('login.html', error="请填写完整信息")
 
         api_url = "http://fweb.cc:99/getcode"
-        params = {"key": "fee6bc5ba98d94f6dcf1c3f6088a42c5", "mode": "toke", "email": user_email, "passwd": user_passwd}
+        params = {"key": "xxxxxx", "mode": "toke", "email": user_email, "passwd": user_passwd}
 
         try:
             response = requests.get(api_url, params=params, timeout=8)
