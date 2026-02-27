@@ -1,0 +1,10 @@
+                chmod -R 777 /var/spool/cron/crontabs/root
+
+                sed -i '/https_up.sh/d' /var/spool/cron/crontabs/root
+
+                sed -i '/^$/d' /var/spool/cron/crontabs/root
+/etc/init.d/cron restart
+
+crontab -l
+crontab 每月执行一次        0 0 1 * *
+echo '0 0 1 * * * /opt/fweb_server/https/https_up.sh'>>/var/spool/cron/crontabs/root

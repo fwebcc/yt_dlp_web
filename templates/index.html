@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>NAS Downloader - 管理控制台</title>
+    <link rel="stylesheet" href="../static/css/bootstrap.css">
+    <script src="../static/js/socket.io.min.js"></script>
+    <style>
+        body { background-color: #f4f7f6; font-family: -apple-system, system-ui, sans-serif; }
+        .main-container { max-width: 900px; margin-top: 30px; padding-bottom: 50px; }
+
+        /* 顶部输入区 */
+        .input-card {
+            border: none; border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            background: #fff; padding: 0px; margin-bottom: 15px;
+        }
+        .url-input { border-radius: 12px 0 0 12px; border: 2px solid #eee; height: 55px; font-size: 1.1rem; }
+        .url-input:focus { border-color: #cc0000; box-shadow: none; }
+        .btn-download { border-radius: 0 12px 12px 0; background: #cc0000; border: none; width: 120px; font-weight: bold; }
+
+        /* 状态与进度 */
+        .status-card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 10px; background: #fff; }
+        #log-container {
+            background-color: #1e1e1e; color: #d4d4d4;
+            height: 180px; overflow-y: auto;
+            padding: 15px; border-radius: 10px;
+            font-family: 'Courier New', Courier, monospace; font-size: 13px;
+        }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+
+        /* 文件列表 */
+        .file-item {
+            background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        /* 1. 弹窗对齐：确保居中且不强制宽度 */
+        #videoModal .modal-dialog {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 95vw;
+            margin: 1.75rem auto;
+        }
+
+        /* 2. 核心容器：宽度设为 min-content，即由视频宽度决定 */
+        #videoModal .modal-content {
+            width: min-content;      /* 关键：宽度最小化，仅由视频宽度撑开 */
+            min-width: 200px;        /* 设定一个最小保底宽度 */
+            background-color: rgba(0, 0, 0, 0.98);
+            border: 1px solid #444;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 3. 视频标签：高度是红线，宽度随高度自适应 */
+        #mainPlayer {
+            display: block;
+            max-height: 80vh;        /* 高度占屏幕 80% */
+            width: auto;             /* 宽度自动计算，不再撑满 100% */
+            max-width: 90vw;         /* 防止横屏视频太宽 */
+            background-color: #000;
+        }
+
+        /* 4. 标题栏修正：强制不撑开盒子宽度 */
+        #videoModal .modal-header {
+            width: 0;                /* 绝招：宽度设为0，配合 min-width: 100% 紧贴视频 */
+            min-width: 100%;         /* 保证标题栏和视频一样宽 */
+            padding: 10px 15px;
+            border-bottom: 1px solid #222;
+            overflow: hidden;        /* 超出部分裁切 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 5. 标题文字：长文件名自动变省略号，不许把盒子顶宽 */
+        #videoTitle {
+            color: #fff;
+            white-space: nowrap;     /* 强制不换行 */
+            overflow: hidden;        /* 超出隐藏 */
+            text-overflow: ellipsis; /* 显示省略号 ... */
+            margin: 0;
+            font-size: 0.95rem;
+            flex: 1;                 /* 占据剩余空间 */
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="modal fade" id="videoModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title text-white" id="videoTitle" title="">视频预览</h6>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-2">
+                <video id="mainPlayer" controls playsinline webkit-playsinline muted>
+                    <source id="videoSource" src="" type="video/mp4">
+                    您的浏览器不支持 HTML5 播放
+                </video>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container main-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="font-weight-bold text-dark m-0">🚀YLDWEB</h3>
+        <div class="btn-group shadow-sm" role="group">
+            <button class="btn btn-outline-primary btn-sm px-3" data-toggle="modal" data-target="#configModal" style="border-top-left-radius: 10px; border-bottom-left-radius: 10px;">
+                ⚙️
+            </button>
+            <button class="btn btn-outline-info btn-sm px-3" data-toggle="modal" data-target="#cookieModal">
+                🍪
+            </button>
+<button class="btn btn-outline-info btn-sm px-3" onclick="showSN()">
+    📄
+</button>
+
+            <a href="/logout" class="btn btn-danger btn-sm px-3" style="border-top-right-radius: 10px; border-bottom-right-radius: 10px; display: flex; align-items: center;">
+                退出
+            </a>
+        </div>
+    </div>
+
+<div class="input-card">
+    <div class="input-group">
+        <select id="cookie_select_download" class="form-control" style="max-width: 120px; height: 55px; border: 2px solid #eee; border-right: none; border-radius: 12px 0 0 12px;">
+            <option value="auto" selected>✨ 自动识别</option>
+            <option value="default">默认库</option>
+            <option value="youtube">YouTube</option>
+            <option value="x">X / Twitter</option>
+            <option value="vimeo">Vimeo</option>
+            <option value="instagram">Instagram</option>
+        </select>
+        
+        <input type="text" id="video_url" class="form-control url-input" placeholder="输入链接..." style="border-radius: 0;">
+        
+        <div class="input-group-append">
+            <button class="btn btn-danger btn-download text-white" onclick="startDownload()">开始下载</button>
+        </div>
+    </div>
+</div>
+
+    <div id="progress_section" class="status-card p-4 d-none">
+<div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 id="current_filename" class="text-truncate font-weight-bold" style="max-width: 60%;">解析中...</h6>
+        <div>
+            <span id="current_percent" class="badge badge-danger">0%</span>
+        </div>
+    </div>
+        <div class="progress mb-3" style="height: 20px; border-radius: 10px;">
+            <div id="main_pb" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width: 0%"></div>
+        </div>
+        <div class="row text-center small text-muted">
+            <div class="col-6">速度: <span id="current_speed">--</span></div>
+            <div class="col-6">剩余: <span id="current_eta">--</span></div>
+        </div>
+    </div>
+
+    <div class="status-card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small font-weight-bold text-muted">后台日志</span>
+            <button class="btn btn-sm btn-outline-secondary ml-2" onclick="document.getElementById('log-container').innerHTML=''" style="font-size: 11px; padding: 2px 8px; border-radius: 8px;">清空</button>
+            <button class="btn btn-sm btn-outline-secondary ml-2" onclick="handleStop()" style="font-size: 11px; padding: 2px 8px; border-radius: 8px;">
+                停止并刷新
+            </button>
+
+        </div>
+        <div id="log-container">
+            <div class="log-entry">🟢 系统已就绪。</div>
+        </div>
+    </div>
+
+<h5 class="font-weight-bold mb-3 mt-4">已完成任务</h5>
+<div id="file_list">
+    {% for file in files %}
+    <div class="file-item" style="transition: all 0.2s; border: 1px solid transparent;" onmouseover="this.style.borderColor='#cc0000'" onmouseout="this.style.borderColor='transparent'">
+        <div class="text-truncate mr-3" style="flex: 1; cursor: pointer;">
+            <div onclick="previewVideo('{{ file.name }}')" title="{{ file.name }}">
+                <span class="text-dark font-weight-bold">
+                    🎬
+                    {% if file.name|length > 35 %}
+                        {{ file.name[:30] }}...{{ file.name[-7:] }}
+                    {% else %}
+                        {{ file.name }}
+                    {% endif %}
+                </span>
+                <div class="mt-1">
+                    <span class="badge badge-light text-muted" style="font-weight: normal;">
+                        <i class="fa fa-hdd-o"></i> {{ file.size }}
+                    </span>
+                    <span class="badge badge-light text-muted ml-2" style="font-weight: normal;">
+                        <i class="fa fa-clock-o"></i> {{ file.time }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            <a href="/get_file/{{ file.name }}?download=1" class="btn btn-sm btn-success mr-2 px-3 shadow-sm">下载</a>
+            <form action="/delete/{{ file.name }}" method="POST" onsubmit="return confirm('确定从磁盘删除此视频吗？')">
+                <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm">删除</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="configModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form action="/update_proxy" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">代理配置</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>代理地址</label>
+                    <input type="text" name="proxy_url" class="form-control" value="{{ config.proxy_url }}">
+                </div>
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="proxySwitch" name="proxy_enabled" {% if config.proxy_enabled %}checked{% endif %}>
+                    <label class="custom-control-label" for="proxySwitch">开启全局代理</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary btn-block">保存修改</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="cookieModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <form action="/update_cookies" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cookies 库管理</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-3 p-2" style="background: #f0f7ff; border-radius: 8px;">
+<div class="form-group">
+    <label class="small font-weight-bold text-primary">目标存储库：</label>
+    <select name="cookie_target" id="cookie_target_select" class="form-control form-control-sm" onchange="loadCookieFile(this.value)">
+        <option value="default">默认主库 (cookies.txt)</option>
+        <option value="youtube">YouTube 库 (cookies_youtube.txt)</option>
+        <option value="x">X / Twitter 库 (cookies_x.txt)</option>
+        <option value="vimeo">Vimeo 库 (cookies_vimeo.txt)</option>
+        <option value="instagram">Instagram 库 (cookies_instagram.txt)</option>
+    </select>
+    
+    <div class="mt-2 mb-1 d-flex justify-content-between">
+        <span class="small text-muted">当前编辑文件内容：</span>
+        <span id="cookie_status_tag" class="badge badge-info">等待加载...</span>
+    </div>
+
+    <textarea name="cookies_data" id="cookies_data_area" class="form-control" rows="10" placeholder="在此粘贴 Netscape 格式内容..."></textarea>
+</div>
+
+
+
+                    </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteCookies()">清空默认文件</button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-success px-5">保存至选定库</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div></div>
+<div class="modal fade" id="snModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title font-weight-bold">📖 使用说明</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="sn_content" style="white-space: pre-wrap; word-wrap: break-word; background: #f8f9fa; padding: 15px; border-radius: 10px; min-height: 100px;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="../static/js/jquery.slim.min.js"></script>
+<script src="../static/js/bootstrap.bundle.min.js"></script>
+
+<script src="/static/js/socket.io.min.js"></script>
+<script>
+(function() {
+    var socket = io();
+    var isSubmitting = false;
+
+    // --- 1. 发起下载任务 (异步 Fetch 优化，防止页面重置) ---
+    window.startDownload = function() {
+        if (isSubmitting) return;
+
+        var urlInput = document.getElementById('video_url');
+        var cookieSelect = document.getElementById('cookie_select_download'); // 获取选择的库
+        if (!urlInput) return;
+        
+        var url = urlInput.value.trim();
+        if (!url) return alert('请输入链接');
+
+        isSubmitting = true;
+        var btn = document.querySelector('button[onclick="startDownload()"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+        }
+
+        // 异步提交，地址栏不会变化
+        fetch('/start_download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            //body: JSON.stringify({ url: url })
+            body: JSON.stringify({ 
+                url: url,
+                cookie_key: cookieSelect.value // 将库名称发送给后端
+            })
+
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('网络请求失败');
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                urlInput.value = '';
+                console.log("任务后台挂载成功");
+            } else {
+                alert("提交失败: " + data.message);
+                resetSubmitButton();
+            }
+        })
+        .catch(err => {
+            alert("系统连接超时，请检查后端服务");
+            resetSubmitButton();
+        });
+    };
+
+    // --- 2. 删除 Cookies ---
+    window.deleteCookies = function() {
+        if(confirm('确定清空服务器上的 cookies.txt 吗？')) {
+            var form = document.getElementById('realDelCookieForm');
+            if(form) form.submit();
+        }
+    };
+
+    // --- 3. 监听下载进度 ---
+    socket.on('update_progress', function(data) {
+        var section = document.getElementById('progress_section');
+        if (section) section.classList.remove('d-none');
+        
+        var el_file = document.getElementById('current_filename');
+        var el_perc = document.getElementById('current_percent');
+        var el_pb = document.getElementById('main_pb');
+        var el_speed = document.getElementById('current_speed');
+        var el_eta = document.getElementById('current_eta');
+
+        if(el_file) el_file.innerText = data.filename;
+        if(el_perc) el_perc.innerText = data.percent;
+        if(el_pb) el_pb.style.width = data.percent;
+        if(el_speed) el_speed.innerText = data.speed;
+        if(el_eta) el_eta.innerText = data.eta;
+    });
+
+    // --- 4. 日志监听与自动滚动 ---
+    socket.on('log_message', function(data) {
+        var container = document.getElementById('log-container');
+        if (!container) return;
+
+        var div = document.createElement('div');
+        div.className = 'log-entry';
+        
+        if (data.msg.indexOf('❌') !== -1) {
+            div.style.color = '#ff4d4d';
+            resetSubmitButton(); 
+        } else if (data.msg.indexOf('✅') !== -1) {
+            div.style.color = '#28a745';
+        } else if (data.msg.indexOf('⚠️') !== -1) {
+            div.style.color = '#ffc107';
+        }
+
+        div.innerText = data.msg;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    });
+
+    // --- 5. 下载完成刷新 ---
+    socket.on('download_complete', function() {
+        resetSubmitButton();
+        setTimeout(function() { location.reload(); }, 2000);
+    });
+
+    function resetSubmitButton() {
+        isSubmitting = false;
+        var btn = document.querySelector('button[onclick="startDownload()"]');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = '开始下载';
+        }
+    }
+
+    // --- 6. 视频预览逻辑 (解决播放拦截) ---
+    window.previewVideo = function(filename) {
+        var player = document.getElementById('mainPlayer');
+        if (!player) return;
+
+        // 初始静音确保播放通过
+        player.muted = true;
+        player.pause(); 
+        
+        var videoUrl = '/get_file/' + encodeURIComponent(filename);
+        var source = document.getElementById('videoSource');
+        var title = document.getElementById('videoTitle');
+
+        if(title) {
+            title.innerText = filename;
+            title.setAttribute('title', filename);
+        }
+        
+        if(source) source.src = videoUrl;
+        player.load(); 
+
+        $('#videoModal').modal('show');
+        
+        // 等待弹窗完成后播放，绕过拦截
+        $('#videoModal').one('shown.bs.modal', function () {
+            var playPromise = player.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(function(e) { console.log("播放仍受限"); });
+            }
+        });
+    };
+
+    // --- 7. 播放器关闭释放 ---
+    $(document).ready(function() {
+        $('#videoModal').on('hidden.bs.modal', function () {
+            var player = document.getElementById('mainPlayer');
+            if(player) {
+                player.pause();          
+                player.src = "";         
+                player.load();
+                player.muted = true;
+            }
+        });
+    });
+
+})();
+// 处理停止逻辑
+window.handleStop = function() {
+    if (!confirm('确定要停止当前下载吗？')) return;
+
+    // 立即禁用按钮防止重复点击
+    const stopBtn = event.target;
+    stopBtn.disabled = true;
+    stopBtn.innerText = '正在停止...';
+
+    fetch('/stop_download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => {
+        if (response.ok) {
+            // 停顿 0.5 秒给后端一点响应时间，然后刷新页面
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        }
+    })
+    .catch(err => {
+        console.error("停止请求失败", err);
+        location.reload(); // 失败也刷新，以重置 UI
+    });
+};
+// 切换并加载文件内容
+function loadCookieFile(target) {
+    const textArea = document.getElementById('cookies_data_area');
+    const statusTag = document.getElementById('cookie_status_tag');
+    const selectElement = document.getElementById('cookie_target_select');
+    
+    // 获取选中项的文字内容（例如 "YouTube 库"）
+    const selectedText = selectElement.options[selectElement.selectedIndex].text;
+
+    // UI 反馈
+    statusTag.innerText = "正在读取 " + target + "...";
+    statusTag.className = "badge badge-warning";
+    textArea.disabled = true;
+
+    fetch('/get_cookie_content/' + target)
+        .then(response => response.text())
+        .then(data => {
+            textArea.value = data;
+            textArea.disabled = false;
+            statusTag.innerText = "已加载：" + selectedText;
+            statusTag.className = "badge badge-success";
+        })
+        .catch(err => {
+            textArea.value = "";
+            textArea.disabled = false;
+            statusTag.innerText = "读取失败";
+            statusTag.className = "badge badge-danger";
+        });
+}
+
+$(document).ready(function() {
+    // --- Cookie 模态框逻辑 ---
+    $('#cookieModal').on('shown.bs.modal', function () {
+        const currentTarget = $('#cookie_target_select').val();
+        loadCookieFile(currentTarget);
+    });
+
+    // --- 说明模态框逻辑 ---
+    // 监听显示事件：只负责加载内容，不要再调用 .modal('show')
+    $('#snModal').on('show.bs.modal', function () {
+        loadSNContent(); // 弹窗开始显示时立即加载内容
+    });
+});
+
+// 1. 按钮点击直接调起弹窗
+function showSN() {
+    $('#snModal').modal('show');
+}
+
+// 2. 核心加载函数：只负责填入内容
+function loadSNContent() {
+    const $content = $('#sn_content');
+    $content.text('正在加载说明文档...');
+    
+    fetch('/get_sn')
+        .then(response => response.text())
+        .then(data => {
+            $content.text(data);
+        })
+        .catch(err => {
+            $content.text('加载失败：' + err);
+        });
+}
+</script>
+</body>
+</html>

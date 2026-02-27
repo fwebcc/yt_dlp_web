@@ -1,0 +1,10 @@
+pyinstaller -F \
+--add-data "templates:templates" \
+--add-data "static:static" \
+--add-data "conf:conf" \
+--collect-all yt_dlp \
+--hidden-import engineio.async_drivers.threading \
+--copy-metadata flask-socketio \
+--copy-metadata python-socketio \
+--copy-metadata python-engineio \
+downapp.py
