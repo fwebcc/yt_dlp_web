@@ -130,20 +130,18 @@ def download_video(url, cookie_key="default"):
     if config.get('proxy_enabled'):
         ydl_opts['proxy'] = config.get('proxy_url')
         socketio.emit('log_message', {'msg': f'🌐 使用代理: {ydl_opts["proxy"]}'})
+    ydl_opts['paths'] = {'home': DOWNLOAD_DIR}
+    ydl_opts['outtmpl'] = {'default': '%(title)s.%(ext)s'}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             socketio.emit('log_message', {'msg': '⏳ 正在解析视频信息...'})
             info = ydl.extract_info(url, download=False)
             title = info.get('title', 'video')
-            clean_title = title.replace(' ', '_').replace('#', '_').replace('&', '_').replace('*', '_')
-            final_filename = f"{clean_title}.mp4"
-            final_path = os.path.join(DOWNLOAD_DIR, final_filename)
-            ydl_opts['outtmpl'] = final_path
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl_final:
-                socketio.emit('log_message', {'msg': f'🚀 准备下载: {final_filename}'})
-                ydl_final.download([url])
-            socketio.emit('download_complete', {'status': 'done'})
-            socketio.emit('log_message', {'msg': '✅ 下载完成！'})
+            clean_title = yt_dlp.utils.sanitize_filename(title, restricted=ydl_opts.get('restrictfilenames'))
+            socketio.emit('log_message', {'msg': f'🚀 准备下载: {clean_title}.mp4'})
+            ydl.process_ie_result(info)
+        socketio.emit('download_complete', {'status': 'done'})
+        socketio.emit('log_message', {'msg': '✅ 下载完成！'})
     except Exception as e:
         msg = "⏹️ 任务已由用户手动停止" if "USER_STOPPED" in str(e) else f"❌ 出错: {str(e)[:100]}"
         socketio.emit('log_message', {'msg': msg})

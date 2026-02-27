@@ -1,21 +1,17 @@
-{
-    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-    "merge_output_format": "mp4",
-    "restrictfilenames": false,
-    "no_color": true,
-    "ignoreerrors": false,
-    "retries": 5,
-    "fragment_retries": 10,
-    "socket_timeout": 10,
-    "nocheckcertificate": true,
-    "concurrent_fragment_downloads": 5,
-    "postprocessor_args": {
-        "ffmpeg": ["-c:v", "libx264", "-c:a", "aac"]
-    },
-    "extractor_args": {
-        "youtube": {
-            "player_client": ["web", "android"],
-            "n_client_allow": ["web", "android", "mweb"]
-        }
-    }
-}
+{"color": {"stderr": "no_color", "stdout": "no_color"},
+ "concurrent_fragment_downloads": 5,
+ "final_ext": "mp4",
+ "format_sort": ["vcodec:h264",
+                 "lang",
+                 "quality",
+                 "res",
+                 "fps",
+                 "hdr:12",
+                 "acodec:aac"],
+ "fragment_retries": 10,
+ "ignoreerrors": true,
+ "merge_output_format": "mp4",
+ "postprocessors": [{"key": "FFmpegVideoRemuxer", "preferedformat": "mp4"}],
+ "restrictfilenames": true,
+ "retries": 5,
+ "socket_timeout": 10.0}
