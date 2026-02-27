@@ -1,5 +1,5 @@
 # yt_dlp_web
-yt_dlp下载web页面
+yt_dlp下载web页面 [填写好每个网站cookie，下载时会自动识别]
 <img width="926" height="616" alt="QQ截图20260227125048" src="https://github.com/user-attachments/assets/66fb3558-b609-42cd-8ee0-33851f77f5db" />
 <img width="980" height="631" alt="QQ截图20260227125059" src="https://github.com/user-attachments/assets/6612ab67-b05a-42f3-acee-cbf45ce7294e" />
 apt install ffmpeg -y
