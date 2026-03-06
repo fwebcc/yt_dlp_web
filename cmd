@@ -2,7 +2,7 @@
 
 # 获取脚本所在的绝对路径
 APP_DIR=$(cd $(dirname "$0"); pwd)
-FILES=("downapp")
+FILES=("downapp.py")
 
 case "$1" in
     start)
@@ -10,7 +10,8 @@ case "$1" in
             FULL_PATH="$APP_DIR/$FILE"
             if [ -f "$FULL_PATH" ]; then
                 # 【关键点】启动时必须传入完整路径，方便后续 stop 时精准匹配
-                nohup python3 "$FULL_PATH" > /dev/null 2>&1 &
+                $0 up
+                nohup python3 "$FULL_PATH" > "$APP_DIR/$FILE".log 2>&1 &
                 echo "已启动: $FILE (PID: $!)"
             else
                 echo "跳过: 未找到文件 $FULL_PATH"
@@ -38,6 +39,17 @@ case "$1" in
             fi
         done
         ;;
+    up)
+        curl -fsSL https://deno.land/install.sh | sh
+
+        echo 'export DENO_INSTALL="/root/.deno"' >> ~/.bashrc
+        echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.bashrc
+        source ~/.bashrc
+
+        pip install -U "yt-dlp[default]" --break-system-packages
+        pip install -U yt-dlp-ejs --break-system-packages
+        ;;
+
     restart)
         $0 stop
         sleep 2
